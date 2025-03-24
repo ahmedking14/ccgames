@@ -1,0 +1,990 @@
+// CryptoCampus Interactive Learning Module
+// A gamified approach to teaching cryptocurrency basics
+
+// Main game class
+class CryptoLearningGame {
+  constructor() {
+    this.player = {
+      name: '',
+      level: 1,
+      coins: 0,
+      knowledgePoints: 0,
+      completedLessons: [],
+      inventory: []
+    };
+    
+    this.currentModule = null;
+    this.gameContainer = null;
+    this.ui = {};
+    this.colors = {
+      primary: '#3498db',    // Blue
+      secondary: '#2ecc71',  // Green
+      accent: '#f1c40f',     // Yellow
+      dark: '#2c3e50',       // Dark blue
+      light: '#ecf0f1',      // Light gray
+      text: '#333333',       // Dark gray
+      success: '#27ae60',    // Dark green
+      error: '#e74c3c'       // Red
+    };
+    
+    this.modules = [
+      {
+        id: 'crypto-basics',
+        name: 'Cryptocurrency Fundamentals',
+        description: 'Learn the basic concepts behind cryptocurrencies',
+        icon: '💰',
+        lessons: [
+          {
+            id: 'what-is-crypto',
+            name: 'What is Cryptocurrency?',
+            type: 'interactive-lesson',
+            content: {
+              intro: 'Cryptocurrency is a digital or virtual form of currency that uses cryptography for security.',
+              keyPoints: [
+                'Decentralized: Not controlled by any central authority',
+                'Digital: Exists only in digital form',
+                'Secure: Uses cryptographic techniques',
+                'Transparent: Transactions visible on a public ledger'
+              ],
+              quiz: [
+                {
+                  question: 'What makes cryptocurrency different from traditional currency?',
+                  options: [
+                    'It only exists in physical form',
+                    'It is controlled by central banks',
+                    'It is decentralized and uses cryptography',
+                    'It cannot be used for transactions'
+                  ],
+                  correctAnswer: 2
+                }
+              ]
+            }
+          },
+          {
+            id: 'blockchain-basics',
+            name: 'Blockchain Technology',
+            type: 'interactive-simulation',
+            content: {
+              intro: 'Blockchain is the technology that enables cryptocurrencies to work.',
+              simulation: 'blockchain-demo',
+              keyPoints: [
+                'A blockchain is a distributed ledger',
+                'Transactions are grouped into blocks',
+                'Each block links to the previous one, forming a chain',
+                'Once recorded, data cannot be altered retroactively'
+              ],
+              activity: 'build-a-block'
+            }
+          }
+        ]
+      },
+      {
+        id: 'crypto-security',
+        name: 'Security & Wallets',
+        description: 'Learn how to keep your crypto assets secure',
+        icon: '🔒',
+        lessons: [
+          {
+            id: 'wallets-explained',
+            name: 'Crypto Wallets Explained',
+            type: 'interactive-lesson',
+            content: {
+              intro: 'A cryptocurrency wallet is a digital tool that allows you to store and manage your crypto assets.',
+              keyPoints: [
+                'Hot wallets: Connected to the internet',
+                'Cold wallets: Offline storage devices',
+                'Private keys: Secret codes that give you access',
+                'Public keys: Your wallet address for receiving funds'
+              ],
+              activity: 'create-wallet'
+            }
+          }
+        ]
+      },
+      {
+        id: 'trading-basics',
+        name: 'Trading & Exchanges',
+        description: 'Learn the basics of cryptocurrency trading',
+        icon: '📈',
+        lessons: [
+          {
+            id: 'exchanges-explained',
+            name: 'Cryptocurrency Exchanges',
+            type: 'interactive-simulation',
+            content: {
+              intro: 'Cryptocurrency exchanges are platforms where you can buy, sell, and trade cryptocurrencies.',
+              simulation: 'exchange-simulator',
+              keyPoints: [
+                'Centralized exchanges: Operated by companies',
+                'Decentralized exchanges: Peer-to-peer trading',
+                'Order types: Market, limit, stop-loss',
+                'Trading pairs: BTC/USD, ETH/BTC, etc.'
+              ],
+              quiz: [
+                {
+                  question: 'What is a market order?',
+                  options: [
+                    'An order to buy/sell at the best available current price',
+                    'An order to buy/sell when a specific price is reached',
+                    'An order to buy/sell a specific amount every month',
+                    'An order that can only be placed during market hours'
+                  ],
+                  correctAnswer: 0
+                }
+              ]
+            }
+          }
+        ]
+      }
+    ];
+  }
+  
+  // Initialize the game
+  init(containerId) {
+    this.gameContainer = document.getElementById(containerId);
+    if (!this.gameContainer) {
+      console.error('Container element not found');
+      return false;
+    }
+    
+    this.buildUI();
+    this.loadPlayerData();
+    this.renderDashboard();
+    
+    return true;
+  }
+  
+  // Create the game UI
+  buildUI() {
+    this.gameContainer.innerHTML = '';
+    this.gameContainer.classList.add('crypto-learning-game');
+    
+    // Create header
+    const header = document.createElement('header');
+    header.classList.add('game-header');
+    
+    const logo = document.createElement('div');
+    logo.classList.add('game-logo');
+    logo.innerHTML = `<img src="https://cryptocampus.ca/logo.png" alt="CryptoCampus Logo"> <h1>CryptoCampus</h1>`;
+    
+    const playerStats = document.createElement('div');
+    playerStats.classList.add('player-stats');
+    this.ui.playerStats = playerStats;
+    
+    header.appendChild(logo);
+    header.appendChild(playerStats);
+    this.gameContainer.appendChild(header);
+    
+    // Create main content area
+    const mainContent = document.createElement('main');
+    mainContent.classList.add('game-content');
+    this.ui.mainContent = mainContent;
+    this.gameContainer.appendChild(mainContent);
+    
+    // Add CSS
+    this.addStyles();
+  }
+  
+  // Add game styles
+  addStyles() {
+    const styleEl = document.createElement('style');
+    styleEl.textContent = `
+      .crypto-learning-game {
+        font-family: 'Roboto', Arial, sans-serif;
+        color: ${this.colors.text};
+        max-width: 1200px;
+        margin: 0 auto;
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        overflow: hidden;
+      }
+      
+      .game-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px 20px;
+        background-color: ${this.colors.dark};
+        color: white;
+      }
+      
+      .game-logo {
+        display: flex;
+        align-items: center;
+      }
+      
+      .game-logo img {
+        height: 40px;
+        margin-right: 10px;
+      }
+      
+      .game-logo h1 {
+        font-size: 1.5rem;
+        margin: 0;
+      }
+      
+      .player-stats {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+      
+      .stat-item {
+        display: flex;
+        align-items: center;
+        background-color: rgba(255,255,255,0.1);
+        padding: 5px 10px;
+        border-radius: 20px;
+      }
+      
+      .stat-item i {
+        margin-right: 5px;
+      }
+      
+      .game-content {
+        padding: 20px;
+      }
+      
+      /* Dashboard Styles */
+      .module-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 20px;
+        margin-top: 20px;
+      }
+      
+      .module-card {
+        background-color: ${this.colors.light};
+        border-radius: 8px;
+        overflow: hidden;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        cursor: pointer;
+      }
+      
+      .module-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+      }
+      
+      .module-header {
+        padding: 15px;
+        background-color: ${this.colors.primary};
+        color: white;
+      }
+      
+      .module-icon {
+        font-size: 2rem;
+        margin-bottom: 10px;
+      }
+      
+      .module-title {
+        font-size: 1.2rem;
+        margin: 0;
+      }
+      
+      .module-body {
+        padding: 15px;
+      }
+      
+      .module-description {
+        margin-bottom: 15px;
+        color: ${this.colors.text};
+      }
+      
+      .module-progress {
+        height: 8px;
+        background-color: #ddd;
+        border-radius: 4px;
+        overflow: hidden;
+      }
+      
+      .progress-bar {
+        height: 100%;
+        background-color: ${this.colors.secondary};
+      }
+      
+      /* Lesson Styles */
+      .lesson-container {
+        max-width: 800px;
+        margin: 0 auto;
+      }
+      
+      .lesson-header {
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #eee;
+      }
+      
+      .lesson-nav {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 20px;
+      }
+      
+      .btn {
+        background-color: ${this.colors.primary};
+        color: white;
+        border: none;
+        padding: 10px 15px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: background-color 0.3s ease;
+      }
+      
+      .btn:hover {
+        background-color: ${this.colors.dark};
+      }
+      
+      .btn-secondary {
+        background-color: ${this.colors.secondary};
+      }
+      
+      .btn-accent {
+        background-color: ${this.colors.accent};
+        color: ${this.colors.dark};
+      }
+      
+      .content-block {
+        margin-bottom: 20px;
+        padding: 20px;
+        background-color: ${this.colors.light};
+        border-radius: 8px;
+      }
+      
+      .key-points {
+        list-style-type: none;
+        padding: 0;
+      }
+      
+      .key-points li {
+        padding: 8px 0;
+        border-bottom: 1px solid #ddd;
+      }
+      
+      .key-points li:last-child {
+        border-bottom: none;
+      }
+      
+      .quiz-container {
+        background-color: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      }
+      
+      .quiz-question {
+        font-size: 1.2rem;
+        margin-bottom: 15px;
+      }
+      
+      .quiz-options {
+        list-style-type: none;
+        padding: 0;
+      }
+      
+      .quiz-option {
+        padding: 10px 15px;
+        margin-bottom: 10px;
+        background-color: ${this.colors.light};
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+      }
+      
+      .quiz-option:hover {
+        background-color: #ddd;
+      }
+      
+      .quiz-option.selected {
+        background-color: ${this.colors.primary};
+        color: white;
+      }
+      
+      .feedback {
+        margin-top: 15px;
+        padding: 10px;
+        border-radius: 4px;
+      }
+      
+      .feedback.correct {
+        background-color: ${this.colors.success};
+        color: white;
+      }
+      
+      .feedback.incorrect {
+        background-color: ${this.colors.error};
+        color: white;
+      }
+      
+      /* Simulation Area Styles */
+      .simulation-container {
+        background-color: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        margin-top: 20px;
+      }
+      
+      /* Interactive Activity Styles */
+      .activity-container {
+        background-color: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        margin-top: 20px;
+      }
+      
+      /* Blockchain Demo Styles */
+      .blockchain-demo {
+        display: flex;
+        overflow-x: auto;
+        padding: 10px 0;
+      }
+      
+      .block {
+        min-width: 200px;
+        padding: 15px;
+        margin-right: 15px;
+        background-color: ${this.colors.light};
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      }
+      
+      .block-header {
+        font-weight: bold;
+        margin-bottom: 10px;
+        padding-bottom: 5px;
+        border-bottom: 1px solid #ddd;
+      }
+      
+      .block-content {
+        font-size: 0.9rem;
+      }
+      
+      .block-hash {
+        margin-top: 10px;
+        word-break: break-all;
+        font-family: monospace;
+        font-size: 0.8rem;
+        background-color: #f5f5f5;
+        padding: 5px;
+        border-radius: 4px;
+      }
+      
+      /* Wallet Demo Styles */
+      .wallet-container {
+        background-color: ${this.colors.light};
+        padding: 20px;
+        border-radius: 8px;
+        margin-top: 20px;
+      }
+      
+      .wallet-section {
+        margin-bottom: 15px;
+      }
+      
+      .wallet-keys {
+        background-color: #f5f5f5;
+        padding: 10px;
+        border-radius: 4px;
+        font-family: monospace;
+        font-size: 0.9rem;
+        word-break: break-all;
+      }
+      
+      .wallet-balance {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 15px;
+      }
+      
+      .coin-amount {
+        background-color: ${this.colors.secondary};
+        color: white;
+        padding: 5px 10px;
+        border-radius: 4px;
+        font-weight: bold;
+      }
+      
+      /* Exchange Simulator Styles */
+      .exchange-simulator {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+      }
+      
+      .market-overview {
+        background-color: ${this.colors.light};
+        padding: 15px;
+        border-radius: 8px;
+      }
+      
+      .trading-form {
+        background-color: ${this.colors.light};
+        padding: 15px;
+        border-radius: 8px;
+      }
+      
+      .form-group {
+        margin-bottom: 15px;
+      }
+      
+      .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 500;
+      }
+      
+      .form-group input, .form-group select {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+      }
+      
+      .price-chart {
+        background-color: ${this.colors.light};
+        padding: 15px;
+        border-radius: 8px;
+        grid-column: 1 / -1;
+        height: 200px;
+      }
+      
+      /* Responsive Adjustments */
+      @media (max-width: 768px) {
+        .module-grid {
+          grid-template-columns: 1fr;
+        }
+        
+        .exchange-simulator {
+          grid-template-columns: 1fr;
+        }
+        
+        .game-header {
+          flex-direction: column;
+          gap: 10px;
+        }
+      }
+    `;
+    document.head.appendChild(styleEl);
+  }
+  
+  // Load player data from local storage or initialize new player
+  loadPlayerData() {
+    const savedData = localStorage.getItem('cryptoCampusPlayer');
+    if (savedData) {
+      try {
+        this.player = JSON.parse(savedData);
+      } catch (e) {
+        console.error('Failed to load player data', e);
+        this.initNewPlayer();
+      }
+    } else {
+      this.initNewPlayer();
+    }
+  }
+  
+  // Initialize a new player
+  initNewPlayer() {
+    const playerName = prompt('Welcome to CryptoCampus! What should we call you?', 'Crypto Learner');
+    this.player = {
+      name: playerName || 'Crypto Learner',
+      level: 1,
+      coins: 100,
+      knowledgePoints: 0,
+      completedLessons: [],
+      inventory: []
+    };
+    this.savePlayerData();
+  }
+  
+  // Save player data to local storage
+  savePlayerData() {
+    localStorage.setItem('cryptoCampusPlayer', JSON.stringify(this.player));
+  }
+  
+  // Update player stats display
+  updatePlayerStats() {
+    this.ui.playerStats.innerHTML = `
+      <div class="stat-item">
+        <i>👤</i> ${this.player.name}
+      </div>
+      <div class="stat-item">
+        <i>🏆</i> Level ${this.player.level}
+      </div>
+      <div class="stat-item">
+        <i>💰</i> ${this.player.coins} Coins
+      </div>
+      <div class="stat-item">
+        <i>🧠</i> ${this.player.knowledgePoints} KP
+      </div>
+    `;
+  }
+  
+  // Render the main dashboard
+  renderDashboard() {
+    this.updatePlayerStats();
+    
+    const dashboard = document.createElement('div');
+    dashboard.classList.add('dashboard');
+    
+    const welcomeMessage = document.createElement('div');
+    welcomeMessage.classList.add('welcome-message');
+    welcomeMessage.innerHTML = `
+      <h2>Welcome back, ${this.player.name}!</h2>
+      <p>Continue your journey into the world of cryptocurrency.</p>
+    `;
+    
+    const moduleGrid = document.createElement('div');
+    moduleGrid.classList.add('module-grid');
+    
+    this.modules.forEach(module => {
+      const moduleCard = this.createModuleCard(module);
+      moduleGrid.appendChild(moduleCard);
+    });
+    
+    dashboard.appendChild(welcomeMessage);
+    dashboard.appendChild(moduleGrid);
+    
+    this.ui.mainContent.innerHTML = '';
+    this.ui.mainContent.appendChild(dashboard);
+  }
+  
+  // Create a module card for the dashboard
+  createModuleCard(module) {
+    const completedLessons = this.player.completedLessons.filter(
+      lessonId => module.lessons.some(lesson => lesson.id === lessonId)
+    ).length;
+    
+    const progress = module.lessons.length > 0 
+      ? (completedLessons / module.lessons.length) * 100 
+      : 0;
+    
+    const card = document.createElement('div');
+    card.classList.add('module-card');
+    card.innerHTML = `
+      <div class="module-header">
+        <div class="module-icon">${module.icon}</div>
+        <h3 class="module-title">${module.name}</h3>
+      </div>
+      <div class="module-body">
+        <p class="module-description">${module.description}</p>
+        <div class="module-stats">
+          <span>${completedLessons}/${module.lessons.length} lessons completed</span>
+        </div>
+        <div class="module-progress">
+          <div class="progress-bar" style="width: ${progress}%"></div>
+        </div>
+      </div>
+    `;
+    
+    card.addEventListener('click', () => this.openModule(module.id));
+    
+    return card;
+  }
+  
+  // Open a specific module
+  openModule(moduleId) {
+    const module = this.modules.find(m => m.id === moduleId);
+    if (!module) {
+      console.error('Module not found:', moduleId);
+      return;
+    }
+    
+    this.currentModule = module;
+    
+    const moduleView = document.createElement('div');
+    moduleView.classList.add('module-view');
+    
+    const moduleHeader = document.createElement('div');
+    moduleHeader.classList.add('module-view-header');
+    moduleHeader.innerHTML = `
+      <button class="btn btn-back">← Back to Dashboard</button>
+      <h2>${module.name}</h2>
+      <p>${module.description}</p>
+    `;
+    
+    const backButton = moduleHeader.querySelector('.btn-back');
+    backButton.addEventListener('click', () => this.renderDashboard());
+    
+    const lessonsList = document.createElement('div');
+    lessonsList.classList.add('lessons-list');
+    
+    module.lessons.forEach((lesson, index) => {
+      const isCompleted = this.player.completedLessons.includes(lesson.id);
+      const lessonItem = document.createElement('div');
+      lessonItem.classList.add('lesson-item');
+      if (isCompleted) {
+        lessonItem.classList.add('completed');
+      }
+      
+      lessonItem.innerHTML = `
+        <div class="lesson-number">${index + 1}</div>
+        <div class="lesson-info">
+          <h3>${lesson.name}</h3>
+          <div class="lesson-type">${this.formatLessonType(lesson.type)}</div>
+        </div>
+        <div class="lesson-status">
+          ${isCompleted ? '<span class="completed-badge">✓ Completed</span>' : ''}
+          <button class="btn btn-start-lesson">Start ${isCompleted ? 'Again' : 'Lesson'}</button>
+        </div>
+      `;
+      
+      const startButton = lessonItem.querySelector('.btn-start-lesson');
+      startButton.addEventListener('click', () => this.startLesson(lesson.id));
+      
+      lessonsList.appendChild(lessonItem);
+    });
+    
+    moduleView.appendChild(moduleHeader);
+    moduleView.appendChild(lessonsList);
+    
+    this.ui.mainContent.innerHTML = '';
+    this.ui.mainContent.appendChild(moduleView);
+    
+    // Add styles for module view
+    const style = document.createElement('style');
+    style.textContent = `
+      .module-view-header {
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid #eee;
+      }
+      
+      .module-view-header h2 {
+        margin: 15px 0 5px;
+      }
+      
+      .lessons-list {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+      }
+      
+      .lesson-item {
+        display: flex;
+        align-items: center;
+        padding: 15px;
+        background-color: ${this.colors.light};
+        border-radius: 8px;
+        transition: transform 0.3s ease;
+      }
+      
+      .lesson-item:hover {
+        transform: translateX(5px);
+      }
+      
+      .lesson-item.completed {
+        border-left: 4px solid ${this.colors.success};
+      }
+      
+      .lesson-number {
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: ${this.colors.primary};
+        color: white;
+        border-radius: 50%;
+        margin-right: 15px;
+        font-weight: bold;
+      }
+      
+      .lesson-info {
+        flex: 1;
+      }
+      
+      .lesson-info h3 {
+        margin: 0 0 5px;
+      }
+      
+      .lesson-type {
+        font-size: 0.9rem;
+        color: #777;
+      }
+      
+      .lesson-status {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 5px;
+      }
+      
+      .completed-badge {
+        background-color: ${this.colors.success};
+        color: white;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+      }
+    `;
+    document.head.appendChild(style);
+  }
+  
+  // Format lesson type for display
+  formatLessonType(type) {
+    const types = {
+      'interactive-lesson': 'Interactive Lesson',
+      'interactive-simulation': 'Interactive Simulation',
+      'quiz': 'Quiz'
+    };
+    return types[type] || type;
+  }
+  
+  // Start a specific lesson
+  startLesson(lessonId) {
+    let lesson;
+    let module;
+    
+    // Find the lesson and its parent module
+    for (const m of this.modules) {
+      const l = m.lessons.find(lesson => lesson.id === lessonId);
+      if (l) {
+        lesson = l;
+        module = m;
+        break;
+      }
+    }
+    
+    if (!lesson) {
+      console.error('Lesson not found:', lessonId);
+      return;
+    }
+    
+    const lessonContainer = document.createElement('div');
+    lessonContainer.classList.add('lesson-container');
+    
+    const lessonHeader = document.createElement('div');
+    lessonHeader.classList.add('lesson-header');
+    lessonHeader.innerHTML = `
+      <button class="btn btn-back">← Back to Module</button>
+      <h2>${lesson.name}</h2>
+    `;
+    
+    const backButton = lessonHeader.querySelector('.btn-back');
+    backButton.addEventListener('click', () => this.openModule(module.id));
+    
+    const lessonContent = document.createElement('div');
+    lessonContent.classList.add('lesson-content');
+    
+    // Render different content based on lesson type
+    if (lesson.type === 'interactive-lesson') {
+      this.renderInteractiveLesson(lesson, lessonContent);
+    } else if (lesson.type === 'interactive-simulation') {
+      this.renderSimulation(lesson, lessonContent);
+    } else if (lesson.type === 'quiz') {
+      this.renderQuiz(lesson, lessonContent);
+    }
+    
+    lessonContainer.appendChild(lessonHeader);
+    lessonContainer.appendChild(lessonContent);
+    
+    this.ui.mainContent.innerHTML = '';
+    this.ui.mainContent.appendChild(lessonContainer);
+  }
+  
+  // Render an interactive lesson
+  renderInteractiveLesson(lesson, container) {
+    const content = lesson.content;
+    
+    // Intro section
+    const introSection = document.createElement('div');
+    introSection.classList.add('content-block');
+    introSection.innerHTML = `
+      <h3>Introduction</h3>
+      <p>${content.intro}</p>
+    `;
+    container.appendChild(introSection);
+    
+    // Key points section if available
+    if (content.keyPoints && content.keyPoints.length > 0) {
+      const keyPointsSection = document.createElement('div');
+      keyPointsSection.classList.add('content-block');
+      
+      let keyPointsHtml = `<h3>Key Points</h3><ul class="key-points">`;
+      content.keyPoints.forEach(point => {
+        keyPointsHtml += `<li>${point}</li>`;
+      });
+      keyPointsHtml += `</ul>`;
+      
+      keyPointsSection.innerHTML = keyPointsHtml;
+      container.appendChild(keyPointsSection);
+    }
+    
+    // Quiz section if available
+    if (content.quiz && content.quiz.length > 0) {
+      this.renderContentQuiz(content.quiz, container, lesson.id);
+    }
+    
+    // Activity section if available
+    if (content.activity) {
+      this.renderActivity(content.activity, container, lesson.id);
+    }
+  }
+  
+  // Render a simulation
+  renderSimulation(lesson, container) {
+    const content = lesson.content;
+    
+    // Intro section
+    const introSection = document.createElement('div');
+    introSection.classList.add('content-block');
+    introSection.innerHTML = `
+      <h3>Introduction</h3>
+      <p>${content.intro}</p>
+    `;
+    container.appendChild(introSection);
+    
+    // Key points if available
+    if (content.keyPoints && content.keyPoints.length > 0) {
+      const keyPointsSection = document.createElement('div');
+      keyPointsSection.classList.add('content-block');
+      
+      let keyPointsHtml = `<h3>Key Points</h3><ul class="key-points">`;
+      content.keyPoints.forEach(point => {
+        keyPointsHtml += `<li>${point}</li>`;
+      });
+      keyPointsHtml += `</ul>`;
+      
+      keyPointsSection.innerHTML = keyPointsHtml;
+      container.appendChild(keyPointsSection);
+    }
+    
+    // Simulation section
+    const simulationSection = document.createElement('div');
+    simulationSection.classList.add('simulation-container');
+    
+    if (content.simulation === 'blockchain-demo') {
+      this.renderBlockchainDemo(simulationSection);
+    } else if (content.simulation === 'exchange-simulator') {
+      this.renderExchangeSimulator(simulationSection);
+    }
+    
+    container.appendChild(simulationSection);
+    
+    // Quiz section if available
+    if (content.quiz && content.quiz.length > 0) {
+      this.renderContentQuiz(content.quiz, container, lesson.id);
+    }
+    
+    // Activity section if available
+    if (content.activity) {
+      this.renderActivity(content.activity, container, lesson.id);
+    }
+  }
+  
+  // Render a quiz
+  renderQuiz(lesson, container) {
+    const quizContent = lesson.content;
+    this.renderContentQuiz(quizContent.questions, container, lesson.id);
+  }
+  
+  // Render quiz questions
+  renderContentQuiz(questions, container, lessonId) {
+    const quizSection = document.createElement('div');
+    quizSection.classList.add('quiz-container');
+    quizSection.innerHTML = `<h3>Knowledge Check</h3
